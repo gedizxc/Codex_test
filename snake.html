@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>需爱意延续</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101820;
+      --panel: #162432;
+      --panel-2: #1d3342;
+      --grid: #223846;
+      --text: #eef6f7;
+      --muted: #9cb2bd;
+      --accent: #57cc99;
+      --accent-2: #80ed99;
+      --food: #ff5d6c;
+      --warning: #ffd166;
+      --shadow: rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top left, rgba(87, 204, 153, 0.13), transparent 34%),
+        linear-gradient(135deg, #101820 0%, #142533 52%, #0f1722 100%);
+      color: var(--text);
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1060px, calc(100vw - 32px));
+      display: grid;
+      grid-template-columns: minmax(300px, 620px) 280px;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .board-wrap {
+      position: relative;
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid rgba(238, 246, 247, 0.09);
+      border-radius: 8px;
+      background: rgba(12, 21, 29, 0.78);
+      box-shadow: 0 20px 50px var(--shadow);
+    }
+
+    canvas {
+      width: 100%;
+      aspect-ratio: 1;
+      display: block;
+      border-radius: 6px;
+      background: #0b1218;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 14px;
+      display: none;
+      place-items: center;
+      border-radius: 6px;
+      background: rgba(8, 16, 22, 0.72);
+      text-align: center;
+    }
+
+    .overlay.show {
+      display: grid;
+    }
+
+    .overlay-box {
+      width: min(78%, 360px);
+      padding: 26px 22px;
+      border: 1px solid rgba(238, 246, 247, 0.14);
+      border-radius: 8px;
+      background: rgba(16, 30, 41, 0.92);
+    }
+
+    .overlay h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      letter-spacing: 0;
+    }
+
+    .overlay p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .side {
+      padding: 22px;
+      border: 1px solid rgba(238, 246, 247, 0.09);
+      border-radius: 8px;
+      background: rgba(22, 36, 50, 0.9);
+      box-shadow: 0 20px 50px var(--shadow);
+    }
+
+    .title {
+      margin: 0 0 18px;
+      font-size: 28px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      min-height: 74px;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--panel-2);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .action {
+      min-height: 44px;
+      border: 0;
+      border-radius: 8px;
+      color: #082016;
+      background: var(--accent-2);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .action.secondary {
+      color: var(--text);
+      background: #2a4354;
+    }
+
+    .action:active,
+    .pad button:active {
+      transform: translateY(1px);
+    }
+
+    .hint {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(3, 58px);
+      grid-template-rows: repeat(3, 48px);
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .pad button {
+      border: 0;
+      border-radius: 8px;
+      color: var(--text);
+      background: #2a4354;
+      cursor: pointer;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .pad button[data-dir="up"] {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .pad button[data-dir="left"] {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .pad button[data-dir="right"] {
+      grid-column: 3;
+      grid-row: 2;
+    }
+
+    .pad button[data-dir="down"] {
+      grid-column: 2;
+      grid-row: 3;
+    }
+
+    @media (max-width: 820px) {
+      body {
+        align-items: start;
+        padding: 16px 0;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+        width: min(620px, calc(100vw - 24px));
+      }
+
+      .side {
+        padding: 18px;
+      }
+
+      .hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="需爱意延续游戏">
+    <section class="board-wrap" aria-label="游戏区域">
+      <canvas id="board" width="528" height="528"></canvas>
+      <div id="overlay" class="overlay show">
+        <div class="overlay-box">
+          <h1 id="overlayTitle">需爱意延续</h1>
+          <p id="overlayText">按方向键或点击开始</p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <h2 class="title">需爱意延续</h2>
+      <div class="stats">
+        <div class="stat">
+          <span>分数</span>
+          <strong id="score">0</strong>
+        </div>
+        <div class="stat">
+          <span>最高分</span>
+          <strong id="best">0</strong>
+        </div>
+        <div class="stat">
+          <span>长度</span>
+          <strong id="length">3</strong>
+        </div>
+        <div class="stat">
+          <span>速度</span>
+          <strong id="speed">1</strong>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="startButton" class="action" type="button">开始</button>
+        <button id="restartButton" class="action secondary" type="button">重开</button>
+      </div>
+
+      <p class="hint">方向键 / WASD 移动<br>P 或空格暂停<br>R 重新开始</p>
+
+      <div class="pad" aria-label="屏幕方向键">
+        <button type="button" data-dir="up" aria-label="向上">↑</button>
+        <button type="button" data-dir="left" aria-label="向左">←</button>
+        <button type="button" data-dir="right" aria-label="向右">→</button>
+        <button type="button" data-dir="down" aria-label="向下">↓</button>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("board");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const overlayTitle = document.getElementById("overlayTitle");
+    const overlayText = document.getElementById("overlayText");
+    const scoreEl = document.getElementById("score");
+    const bestEl = document.getElementById("best");
+    const lengthEl = document.getElementById("length");
+    const speedEl = document.getElementById("speed");
+    const startButton = document.getElementById("startButton");
+    const restartButton = document.getElementById("restartButton");
+
+    const gridSize = 22;
+    const tileSize = canvas.width / gridSize;
+    const startDelay = 145;
+    const minDelay = 62;
+    const speedStep = 6;
+
+    const colors = {
+      background: "#0b1218",
+      grid: "#1f3340",
+      snake: "#57cc99",
+      snakeHead: "#80ed99",
+      food: "#ff5d6c",
+      foodInner: "#ffd166",
+      text: "#eef6f7"
+    };
+
+    let snake;
+    let food;
+    let direction;
+    let nextDirection;
+    let score;
+    let bestScore = Number(localStorage.getItem("htmlSnakeBest") || 0);
+    let delay;
+    let timerId = null;
+    let running = false;
+    let paused = false;
+    let gameOver = false;
+
+    function resetGame() {
+      const center = Math.floor(gridSize / 2);
+      snake = [
+        { x: center, y: center },
+        { x: center - 1, y: center },
+        { x: center - 2, y: center }
+      ];
+      direction = { x: 1, y: 0 };
+      nextDirection = { x: 1, y: 0 };
+      score = 0;
+      delay = startDelay;
+      running = false;
+      paused = false;
+      gameOver = false;
+      food = createFood();
+      startButton.textContent = "开始";
+      updateStats();
+      showOverlay("需爱意延续", "按方向键或点击开始");
+      draw();
+    }
+
+    function startGame() {
+      if (gameOver) {
+        resetGame();
+      }
+      if (running && !paused) {
+        paused = true;
+        startButton.textContent = "继续";
+        showOverlay("已暂停", "按 P 或点击继续");
+        clearTimer();
+        return;
+      }
+      running = true;
+      paused = false;
+      startButton.textContent = "暂停";
+      hideOverlay();
+      scheduleTick();
+    }
+
+    function scheduleTick() {
+      clearTimer();
+      timerId = window.setTimeout(tick, delay);
+    }
+
+    function clearTimer() {
+      if (timerId !== null) {
+        window.clearTimeout(timerId);
+        timerId = null;
+      }
+    }
+
+    function tick() {
+      if (!running || paused || gameOver) {
+        return;
+      }
+
+      moveSnake();
+      draw();
+
+      if (!gameOver) {
+        scheduleTick();
+      }
+    }
+
+    function moveSnake() {
+      direction = nextDirection;
+      const head = snake[0];
+      const newHead = {
+        x: head.x + direction.x,
+        y: head.y + direction.y
+      };
+      const willEat = newHead.x === food.x && newHead.y === food.y;
+
+      if (hasCollision(newHead, willEat)) {
+        endGame();
+        return;
+      }
+
+      snake.unshift(newHead);
+
+      if (willEat) {
+        score += 10;
+        delay = Math.max(minDelay, delay - speedStep);
+        food = createFood();
+      } else {
+        snake.pop();
+      }
+
+      updateStats();
+    }
+
+    function hasCollision(point, willEat) {
+      if (point.x < 0 || point.x >= gridSize || point.y < 0 || point.y >= gridSize) {
+        return true;
+      }
+
+      const body = willEat ? snake : snake.slice(0, -1);
+      return body.some((cell) => cell.x === point.x && cell.y === point.y);
+    }
+
+    function createFood() {
+      const openCells = [];
+      for (let y = 0; y < gridSize; y += 1) {
+        for (let x = 0; x < gridSize; x += 1) {
+          if (!snake.some((cell) => cell.x === x && cell.y === y)) {
+            openCells.push({ x, y });
+          }
+        }
+      }
+
+      if (openCells.length === 0) {
+        endGame(true);
+        return { x: 0, y: 0 };
+      }
+
+      return openCells[Math.floor(Math.random() * openCells.length)];
+    }
+
+    function changeDirection(newDirection) {
+      if (newDirection.x + direction.x === 0 && newDirection.y + direction.y === 0) {
+        return;
+      }
+      nextDirection = newDirection;
+      if (!running || paused) {
+        startGame();
+      }
+    }
+
+    function togglePause() {
+      if (gameOver) {
+        return;
+      }
+      startGame();
+    }
+
+    function endGame(won = false) {
+      gameOver = true;
+      running = false;
+      paused = false;
+      clearTimer();
+      bestScore = Math.max(bestScore, score);
+      localStorage.setItem("htmlSnakeBest", String(bestScore));
+      startButton.textContent = "开始";
+      updateStats();
+      showOverlay(won ? "你赢了" : "游戏结束", "按 R 或点击重开");
+    }
+
+    function updateStats() {
+      scoreEl.textContent = score;
+      bestEl.textContent = bestScore;
+      lengthEl.textContent = snake.length;
+      speedEl.textContent = String(Math.floor((startDelay - delay) / speedStep) + 1);
+    }
+
+    function showOverlay(title, text) {
+      overlayTitle.textContent = title;
+      overlayText.textContent = text;
+      overlay.classList.add("show");
+    }
+
+    function hideOverlay() {
+      overlay.classList.remove("show");
+    }
+
+    function draw() {
+      ctx.fillStyle = colors.background;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+      drawFood();
+      drawSnake();
+    }
+
+    function drawGrid() {
+      ctx.strokeStyle = colors.grid;
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= gridSize; i += 1) {
+        const offset = i * tileSize + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(offset, 0);
+        ctx.lineTo(offset, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, offset);
+        ctx.lineTo(canvas.width, offset);
+        ctx.stroke();
+      }
+    }
+
+    function drawSnake() {
+      snake.forEach((cell, index) => {
+        drawRoundedCell(
+          cell.x,
+          cell.y,
+          index === 0 ? colors.snakeHead : colors.snake,
+          index === 0 ? 7 : 6
+        );
+      });
+    }
+
+    function drawFood() {
+      const centerX = food.x * tileSize + tileSize / 2;
+      const centerY = food.y * tileSize + tileSize / 2;
+      ctx.fillStyle = colors.food;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, tileSize * 0.34, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = colors.foodInner;
+      ctx.beginPath();
+      ctx.arc(centerX - tileSize * 0.08, centerY - tileSize * 0.08, tileSize * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawRoundedCell(x, y, color, radius) {
+      const inset = 3;
+      const left = x * tileSize + inset;
+      const top = y * tileSize + inset;
+      const size = tileSize - inset * 2;
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(left, top, size, size, radius);
+      ctx.fill();
+    }
+
+    function handleKeydown(event) {
+      const keyMap = {
+        ArrowUp: { x: 0, y: -1 },
+        w: { x: 0, y: -1 },
+        W: { x: 0, y: -1 },
+        ArrowDown: { x: 0, y: 1 },
+        s: { x: 0, y: 1 },
+        S: { x: 0, y: 1 },
+        ArrowLeft: { x: -1, y: 0 },
+        a: { x: -1, y: 0 },
+        A: { x: -1, y: 0 },
+        ArrowRight: { x: 1, y: 0 },
+        d: { x: 1, y: 0 },
+        D: { x: 1, y: 0 }
+      };
+
+      if (keyMap[event.key]) {
+        event.preventDefault();
+        changeDirection(keyMap[event.key]);
+      } else if (event.key === " " || event.key === "p" || event.key === "P") {
+        event.preventDefault();
+        togglePause();
+      } else if (event.key === "r" || event.key === "R") {
+        event.preventDefault();
+        resetGame();
+      }
+    }
+
+    startButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", resetGame);
+    document.addEventListener("keydown", handleKeydown);
+
+    document.querySelectorAll("[data-dir]").forEach((button) => {
+      const directions = {
+        up: { x: 0, y: -1 },
+        down: { x: 0, y: 1 },
+        left: { x: -1, y: 0 },
+        right: { x: 1, y: 0 }
+      };
+      button.addEventListener("click", () => {
+        changeDirection(directions[button.dataset.dir]);
+      });
+    });
+
+    resetGame();
+  </script>
+</body>
+</html>
